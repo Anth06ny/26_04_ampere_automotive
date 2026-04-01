@@ -96,7 +96,7 @@ class MainScreen(carContext: CarContext) : Screen(carContext) {
                 .build())
             .addItem(
                 GridItem.Builder()
-                    .setTitle("Fuel : $outsideTemp")
+                    .setTitle("Fuel : $fuelLevel")
                     .setImage(icon)
                     .build())
             .build()
