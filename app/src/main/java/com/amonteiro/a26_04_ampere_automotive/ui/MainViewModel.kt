@@ -7,19 +7,34 @@ import com.amonteiro.a26_04_ampere_automotive.data.remote.TempEntity
 import com.amonteiro.a26_04_ampere_automotive.data.remote.WeatherAPI
 import com.amonteiro.a26_04_ampere_automotive.data.remote.WeatherEntity
 import com.amonteiro.a26_04_ampere_automotive.data.remote.WindEntity
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import okhttp3.Dispatcher
 
-class MainViewModel : ViewModel() {
+
+fun main() {
+    val mainViewModel = MainViewModel()
+    println("res : " +  mainViewModel.dataList.value.size)
+    mainViewModel.loadWeathers("Nice")
+
+    while (mainViewModel.runInProgress.value) {
+        println("Attente ...")
+        Thread.sleep(500)
+    }
+    println("res : " +  mainViewModel.dataList.value.size)
+}
+
+open class MainViewModel(private val dispatcher: CoroutineDispatcher = Dispatchers.IO) : ViewModel() {
     val dataList = MutableStateFlow(emptyList<WeatherEntity>())
     val runInProgress = MutableStateFlow(false)
     val errorMessage = MutableStateFlow("")
 
     init {//Création d'un jeu de donnée au démarrage
         println("Instanciation de MainViewModel")
-        loadFakeData()
+        //loadFakeData()
     }
 
     fun loadFakeData(runInProgress :Boolean = false, errorMessage:String = "" ) {
@@ -65,11 +80,11 @@ class MainViewModel : ViewModel() {
         ).shuffled() //shuffled() pour avoir un ordre différent à chaque appel
     }
 
-    fun loadWeathers(cityName: String) {
+    open fun loadWeathers(cityName: String): Job? {
         runInProgress.value = true
         errorMessage.value = ""
         //tache asynchrone
-        viewModelScope.launch(Dispatchers.IO) {
+        val job = viewModelScope.launch(dispatcher) {
             try {
                 dataList.value = WeatherAPI.loadWeathers(cityName)
             }
@@ -80,5 +95,7 @@ class MainViewModel : ViewModel() {
             }
             runInProgress.value = false
         }
+
+        return job
     }
 }

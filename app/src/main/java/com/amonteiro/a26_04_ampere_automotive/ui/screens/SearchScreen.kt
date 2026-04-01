@@ -43,6 +43,7 @@ import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -54,6 +55,8 @@ import com.amonteiro.a26_04_ampere_automotive.R
 import com.amonteiro.a26_04_ampere_automotive.data.remote.WeatherEntity
 import com.amonteiro.a26_04_ampere_automotive.ui.MainViewModel
 import com.amonteiro.a26_04_ampere_automotive.ui.theme._26_04_ampere_automotiveTheme
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.rememberPermissionState
 
 //Code affiché dans la Preview, thème claire, thème sombre
 @Preview(showBackground = true, showSystemUi = true)
@@ -74,14 +77,77 @@ fun SearchScreenPreview() {
     }
 }
 
+//Code affiché dans la Preview, thème claire, thème sombre
+@Preview(showBackground = true, showSystemUi = true)
+@Preview(showBackground = true, showSystemUi = true,
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES
+            or android.content.res.Configuration.UI_MODE_TYPE_NORMAL)
+@Composable
+fun SearchScreenPreview2() {
+    _26_04_ampere_automotiveTheme {
+        Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+            //Jeu de donnée pour la Preview
+            val mainViewModel : MainViewModel = viewModel()
+            mainViewModel.loadFakeData(errorMessage = "UNe erreur")
+
+            SearchScreen(modifier = Modifier.padding(innerPadding),
+                mainViewModel = mainViewModel)
+        }
+    }
+}
+
+//Code affiché dans la Preview, thème claire, thème sombre
+@Preview(showBackground = true, showSystemUi = true)
+@Preview(showBackground = true, showSystemUi = true,
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES
+            or android.content.res.Configuration.UI_MODE_TYPE_NORMAL)
+@Composable
+fun SearchScreenPreview3() {
+    _26_04_ampere_automotiveTheme {
+        Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+            //Jeu de donnée pour la Preview
+            val mainViewModel : MainViewModel = viewModel()
+            mainViewModel.loadFakeData(errorMessage = "UNe erreur", runInProgress = true)
+
+            SearchScreen(modifier = Modifier.padding(innerPadding),
+                mainViewModel = mainViewModel)
+        }
+    }
+}
+
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun SearchScreen(modifier:Modifier = Modifier, mainViewModel: MainViewModel = viewModel()) {
 
     val searchText = rememberSaveable { mutableStateOf("") }
 
+    val context = LocalContext.current
+    //Accès à une permission
+    val locationPermissionState = rememberPermissionState(android.Manifest.permission.ACCESS_FINE_LOCATION,
+        onPermissionResult = {
+            if (it) { //Permission OK
+                mainViewModel.errorMessage.value = "Permission : $it"
+            } else { //Permission refusée
+                mainViewModel.errorMessage.value = "Il faut la permission"
+            }
+        })
+
+    //val list = mainViewModel.dataList //.filter { it.title.contains(searchText.value, true) }
+    //Grâce à la fonction collectAsStateWithLifecycle(), Compose peut observer les changements de la liste
+    val list by mainViewModel.dataList.collectAsStateWithLifecycle()
+    val runInProgress by mainViewModel.runInProgress.collectAsStateWithLifecycle()
+    val errorMessage by mainViewModel.errorMessage.collectAsStateWithLifecycle()
+
+
     Column(modifier= modifier.fillMaxSize()) {
 
         SearchBar(searchText = searchText)
+
+        MyError(errorMessage = errorMessage)
+
+        AnimatedVisibility(visible = runInProgress){
+            CircularProgressIndicator()
+        }
 
         //Version officiel on remonte les événements et on utilise un by pour searchText
         //SearchBar(
@@ -91,9 +157,7 @@ fun SearchScreen(modifier:Modifier = Modifier, mainViewModel: MainViewModel = vi
         //    }
         //)
 
-        //val list = mainViewModel.dataList //.filter { it.title.contains(searchText.value, true) }
-        //Grâce à la fonction collectAsStateWithLifecycle(), Compose peut observer les changements de la liste
-        val list by mainViewModel.dataList.collectAsStateWithLifecycle()
+
 
         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.weight(1f)) {
             items(list.size) {
@@ -107,7 +171,7 @@ fun SearchScreen(modifier:Modifier = Modifier, mainViewModel: MainViewModel = vi
         Row(modifier = Modifier.align(CenterHorizontally)) {
             Button(
                 onClick = {
-                    searchText.value = ""
+                    locationPermissionState.launchPermissionRequest()
                 },
                 contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
                 modifier = Modifier
@@ -159,7 +223,7 @@ fun SearchBar(modifier: Modifier = Modifier, searchText: MutableState<String>) {
             )
         },
         singleLine = true,
-        label = { Text("Enter text") }, //Texte d'aide qui se déplace
+        label = { Text("Votre recherche ici") }, //Texte d'aide qui se déplace
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = 56.dp)//Hauteur minimum
@@ -214,3 +278,19 @@ fun PictureRowItem(modifier: Modifier = Modifier, data: WeatherEntity) {
     }
 }
 
+//Le composant est réutilisable avec n'importe quelle chaine de caractère
+@Composable
+fun MyError(
+    modifier: Modifier = Modifier,
+    errorMessage: String? = null
+) {
+    //permet d'afficher / masquer l'erreur avec une animation
+    AnimatedVisibility(!errorMessage.isNullOrBlank()) {
+        Text(
+            text = errorMessage ?: "",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onError,
+            modifier = modifier.fillMaxWidth().background(MaterialTheme.colorScheme.error)
+        )
+    }
+}

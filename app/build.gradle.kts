@@ -6,6 +6,22 @@ plugins {
 }
 
 android {
+
+    //Pour utiliser VHAL
+    useLibrary("android.car")
+
+    flavorDimensions += "platform"
+
+    productFlavors {
+        // Platform dimension
+        create("mobile") {
+            dimension = "platform"
+        }
+        create("automotive") {
+            dimension = "platform"
+        }
+    }
+
     namespace = "com.amonteiro.a26_04_ampere_automotive"
     compileSdk {
         version = release(36) {
@@ -67,4 +83,14 @@ dependencies {
     implementation("io.coil-kt.coil3:coil-compose:3.2.0")
 
     implementation ("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
+
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.+")
+
+    testImplementation("io.mockk:mockk:1.+")
+
+    implementation ("com.google.accompanist:accompanist-permissions:+")
+
+    implementation("androidx.car.app:app:1.7.+")
+    implementation("androidx.car.app:app-automotive:1.7.+")
+
 }

@@ -12,6 +12,7 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.isSuccess
 import io.ktor.serialization.kotlinx.json.json
+import kotlinx.coroutines.delay
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
@@ -20,7 +21,7 @@ suspend fun main() {
     val list = WeatherAPI.loadWeathers("toulouse")
 
     list.forEach {
-        println(it.getResume())
+        println(it.name + " " + it.main.temp + " °")
     }
 
 }
@@ -48,6 +49,8 @@ object WeatherAPI {
     suspend fun loadWeathers(cityName: String): List<WeatherEntity> {
 
         val response = client.get("https://api.openweathermap.org/data/2.5/find?q=$cityName&appid=b80967f0a6bd10d23e44848547b26550&units=metric&lang=fr")
+
+
         if (!response.status.isSuccess()) {
             throw Exception("Erreur API: ${response.status} - ${response.bodyAsText()}")
         }
